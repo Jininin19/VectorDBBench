@@ -2,6 +2,7 @@ import json
 import logging
 import time
 from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor
 
 from alibabacloud_ha3engine_vector import models
 from alibabacloud_ha3engine_vector.client import Client
@@ -22,7 +23,7 @@ class AliyunOpenSearch(VectorDB):
         dim: int,
         db_config: dict,
         db_case_config: AliyunOpenSearchIndexConfig,
-        collection_name: str = "VectorDBBenchCollection",
+        collection_name: str = "VectorDBBenchCollection-2",
         drop_old: bool = False,
         **kwargs,
     ):
@@ -42,6 +43,8 @@ class AliyunOpenSearch(VectorDB):
         self._scalar_field = "int_id"
         self._vector_field = "vector"
         self._index_name = "vector_idx"
+
+        self.timeout = 1800
 
         client = Client(self.config)
 
@@ -76,28 +79,41 @@ class AliyunOpenSearch(VectorDB):
         vector_index.dimension = self.dim
         vector_index.distance_type = self.case_config.distance_type()
         vector_index.vector_field = self._vector_field
-        vector_index.vector_index_type = "HNSW"
+        vector_index.vector_index_type = "DiskANN"
 
         advance_params = models.ModifyTableRequestVectorIndexAdvanceParams()
-        str_max_neighbor_count = f'"proxima.hnsw.builder.max_neighbor_count":{self.case_config.M}'
-        str_efc = f'"proxima.hnsw.builder.efconstruction":{self.case_config.ef_construction}'
-        str_enable_adsampling = '"proxima.hnsw.builder.enable_adsampling":true'
-        str_slack_pruning_factor = '"proxima.hnsw.builder.slack_pruning_factor":1.1'
-        str_thread_count = '"proxima.hnsw.builder.thread_count":16'
-
+#        str_max_neighbor_count = f'"proxima.hnsw.builder.max_neighbor_count":{self.case_config.M}'
+#        str_efc = f'"proxima.hnsw.builder.efconstruction":{self.case_config.ef_construction}'
+#        str_enable_adsampling = '"proxima.hnsw.builder.enable_adsampling":true'
+#        str_slack_pruning_factor = '"proxima.hnsw.builder.slack_pruning_factor":1.1'
+#        str_thread_count = '"proxima.hnsw.builder.thread_count":16'
+        str_pq_dims=f'"proxima.diskann.builder.pq_dimension_scale":{self.case_config.pq_dims}'
+        str_max_degree=f'"proxima.diskann.builder.max_degree":{self.case_config.max_degree}'
+        str_build_list_size=f'"proxima.diskann.builder.list_size":{self.case_config.build_list_size}'
+        str_thread_count=f'"proxima.diskann.builder.thread_count":{self.case_config.thread_count}'
         params = ",".join(
             [
-                str_max_neighbor_count,
-                str_efc,
-                str_enable_adsampling,
-                str_slack_pruning_factor,
+                str_pq_dims,
+                str_max_degree,
+                str_build_list_size,
                 str_thread_count,
             ],
         )
         advance_params.build_index_params = "{" + params + "}"
-        advance_params.search_index_params = (
-            '{"proxima.hnsw.searcher.ef":400,"proxima.hnsw.searcher.dynamic_termination.prob_threshold":0.7}'
+        str_search_list_size=f'"proxima.diskann.searcher.list_size":{self.case_config.search_list_size}'
+        str_io_limit=f'"proxima.diskann.searcher.io_limit":{self.case_config.io_limit}'
+        str_beam=f'"proxima.diskann.searcher.beam_search_width":{self.case_config.beam}'
+        search_params=",".join(
+                [
+                    str_search_list_size,
+                    str_io_limit,
+                    str_beam,
+                ],
         )
+        advance_params.search_index_params="{" + search_params + "}"
+#        advance_params.search_index_params = (
+#            '{"proxima.hnsw.searcher.ef":400,"proxima.hnsw.searcher.dynamic_termination.prob_threshold":0.7}'
+#        )
         vector_index.advance_params = advance_params
         create_table_request.vector_index = [vector_index]
 
@@ -168,6 +184,7 @@ class AliyunOpenSearch(VectorDB):
         self._active_index(client)
 
         modify_table_request = models.ModifyTableRequest()
+        modify_table_request.name=self.collection_name
         modify_table_request.partition_count = 1
         modify_table_request.primary_key = self._primary_field
         modify_table_request.field_schema = {
@@ -180,28 +197,52 @@ class AliyunOpenSearch(VectorDB):
         vector_index.dimension = self.dim
         vector_index.distance_type = self.case_config.distance_type()
         vector_index.vector_field = self._vector_field
-        vector_index.vector_index_type = "HNSW"
+        vector_index.vector_index_type = "DiskANN"
         advance_params = models.ModifyTableRequestVectorIndexAdvanceParams()
 
-        str_max_neighbor_count = f'"proxima.hnsw.builder.max_neighbor_count":{self.case_config.M}'
-        str_efc = f'"proxima.hnsw.builder.efconstruction":{self.case_config.ef_construction}'
-        str_enable_adsampling = '"proxima.hnsw.builder.enable_adsampling":true'
-        str_slack_pruning_factor = '"proxima.hnsw.builder.slack_pruning_factor":1.1'
-        str_thread_count = '"proxima.hnsw.builder.thread_count":16'
-
+#        str_max_neighbor_count = f'"proxima.hnsw.builder.max_neighbor_count":{self.case_config.M}'
+#        str_efc = f'"proxima.hnsw.builder.efconstruction":{self.case_config.ef_construction}'
+#        str_enable_adsampling = '"proxima.hnsw.builder.enable_adsampling":true'
+#        str_slack_pruning_factor = '"proxima.hnsw.builder.slack_pruning_factor":1.1'
+#        str_thread_count = '"proxima.hnsw.builder.thread_count":16'
+#
+#        params = ",".join(
+#            [
+#                str_max_neighbor_count,
+#                str_efc,
+#                str_enable_adsampling,
+#                str_slack_pruning_factor,
+#                str_thread_count,
+#            ],
+#        )
+#        advance_params.build_index_params = "{" + params + "}"
+#        advance_params.search_index_params = (
+#            '{"proxima.hnsw.searcher.ef":400,"proxima.hnsw.searcher.dynamic_termination.prob_threshold":0.7}'
+#        )
+        str_pq_dims=f'"proxima.diskann.builder.pq_dimension_scale":{self.case_config.pq_dims}'
+        str_max_degree=f'"proxima.diskann.builder.max_degree":{self.case_config.max_degree}'
+        str_build_list_size=f'"proxima.diskann.builder.list_size":{self.case_config.build_list_size}'
+        str_thread_count=f'"proxima.diskann.builder.thread_count":{self.case_config.thread_count}'
         params = ",".join(
             [
-                str_max_neighbor_count,
-                str_efc,
-                str_enable_adsampling,
-                str_slack_pruning_factor,
+                str_pq_dims,
+                str_max_degree,
+                str_build_list_size,
                 str_thread_count,
             ],
         )
         advance_params.build_index_params = "{" + params + "}"
-        advance_params.search_index_params = (
-            '{"proxima.hnsw.searcher.ef":400,"proxima.hnsw.searcher.dynamic_termination.prob_threshold":0.7}'
+        str_search_list_size=f'"proxima.diskann.searcher.list_size":{self.case_config.search_list_size}'
+        str_io_limit=f'"proxima.diskann.searcher.io_limit":{self.case_config.io_limit}'
+        str_beam=f'"proxima.diskann.searcher.beam_search_width":{self.case_config.beam}'
+        search_params=",".join(
+                [   
+                    str_search_list_size,
+                    str_io_limit,
+                    str_beam,
+                ],
         )
+        advance_params.search_index_params="{" + search_params + "}"
         vector_index.advance_params = advance_params
 
         modify_table_request.vector_index = [vector_index]
@@ -245,42 +286,92 @@ class AliyunOpenSearch(VectorDB):
         self.client = None
         del self.client
 
+#    def insert_embeddings(
+#        self,
+#        embeddings: list[list[float]],
+#        metadata: list[int],
+#        **kwargs,
+#    ) -> tuple[int, Exception]:
+#        """Insert the embeddings to the opensearch."""
+#        assert self.client is not None, "should self.init() first"
+#        assert len(embeddings) == len(metadata)
+#        insert_count = 0
+#
+#        try:
+#            for batch_start_offset in range(0, len(embeddings), self.batch_size):
+#                batch_end_offset = min(batch_start_offset + self.batch_size, len(embeddings))
+#                documents = []
+#                for i in range(batch_start_offset, batch_end_offset):
+#                    document_fields = {
+#                        self._primary_field: metadata[i],
+#                        self._vector_field: embeddings[i],
+#                        self._scalar_field: metadata[i],
+#                        "ops_build_channel": "inc",
+#                    }
+#                    document = {"fields": document_fields, "cmd": "add"}
+#                    documents.append(document)
+#
+#                push_doc_req = models.PushDocumentsRequest({}, documents)
+#                self.client.push_documents(
+#                    self.collection_name,
+#                    self._primary_field,
+#                    push_doc_req,
+#                )
+#                insert_count += batch_end_offset - batch_start_offset
+#        except Exception as e:
+#            log.info(f"Failed to insert data: {e}")
+#            return (insert_count, e)
+#        return (insert_count, None)
+
     def insert_embeddings(
         self,
         embeddings: list[list[float]],
         metadata: list[int],
+        max_retries: int = 3,  # 最大重试次数
+        retry_delay: int = 2,  # 重试间隔时间（秒）
         **kwargs,
     ) -> tuple[int, Exception]:
-        """Insert the embeddings to the opensearch."""
+        """Insert the embeddings to the opensearch with timeout retry."""
         assert self.client is not None, "should self.init() first"
         assert len(embeddings) == len(metadata)
         insert_count = 0
-
-        try:
-            for batch_start_offset in range(0, len(embeddings), self.batch_size):
-                batch_end_offset = min(batch_start_offset + self.batch_size, len(embeddings))
-                documents = []
-                for i in range(batch_start_offset, batch_end_offset):
-                    document_fields = {
-                        self._primary_field: metadata[i],
-                        self._vector_field: embeddings[i],
-                        self._scalar_field: metadata[i],
-                        "ops_build_channel": "inc",
-                    }
-                    document = {"fields": document_fields, "cmd": "add"}
-                    documents.append(document)
-
-                push_doc_req = models.PushDocumentsRequest({}, documents)
-                self.client.push_documents(
-                    self.collection_name,
-                    self._primary_field,
-                    push_doc_req,
-                )
-                insert_count += batch_end_offset - batch_start_offset
-        except Exception as e:
-            log.info(f"Failed to insert data: {e}")
-            return (insert_count, e)
+    
+        for batch_start_offset in range(0, len(embeddings), self.batch_size):
+            batch_end_offset = min(batch_start_offset + self.batch_size, len(embeddings))
+            for attempt in range(max_retries):
+                try:
+                    with ThreadPoolExecutor() as executor:
+                        future = executor.submit(
+                            self._insert_batch,
+                            embeddings[batch_start_offset:batch_end_offset],
+                            metadata[batch_start_offset:batch_end_offset]
+                        )
+                        result = future.result(timeout=self.timeout)
+                    insert_count += result
+                    break  
+                except Exception as e:
+                    log.warning(f"Batch failed (attempt {attempt + 1}/{max_retries}): {e}")
+                    if attempt == max_retries - 1:  # 最后一次重试失败
+                        return (insert_count, e)
+                    time.sleep(retry_delay)  # 重试前等待
+    
         return (insert_count, None)
+
+    def _insert_batch(self, batch_embeddings: list[list[float]], batch_metadata: list[int]) -> int:
+        documents = []
+        for i in range(len(batch_embeddings)):
+            document_fields = {
+                self._primary_field: batch_metadata[i],
+                self._vector_field: batch_embeddings[i],
+                self._scalar_field: batch_metadata[i],
+                "ops_build_channel": "inc",
+            }
+            documents.append({"fields": document_fields, "cmd": "add"})
+    
+        push_doc_req = models.PushDocumentsRequest({}, documents)
+        self.client.push_documents(self.collection_name, self._primary_field, push_doc_req)
+        return len(batch_embeddings)  # 返回成功插入的文档数量
+
 
     def search_embedding(
         self,
@@ -289,7 +380,17 @@ class AliyunOpenSearch(VectorDB):
         filters: dict | None = None,
     ) -> list[int]:
         assert self.client is not None, "should self.init() first"
-        search_params = '{"proxima.hnsw.searcher.ef":' + str(self.case_config.ef_search) + "}"
+#        search_params = '{"proxima.hnsw.searcher.ef":' + str(self.case_config.ef_search) + "}"
+        str_search_list_size=f'"proxima.diskann.searcher.list_size":{self.case_config.search_list_size}'
+        str_io_limit=f'"proxima.diskann.searcher.io_limit":{self.case_config.io_limit}'
+        str_beam=f'"proxima.diskann.searcher.beam_search_width":{self.case_config.beam}'
+        search_params=",".join(
+                [
+                    str_search_list_size,
+                    str_io_limit,
+                    str_beam,
+                ],
+        )
 
         os_filter = f"{self._scalar_field} {filters.get('metadata')}" if filters else ""
 
