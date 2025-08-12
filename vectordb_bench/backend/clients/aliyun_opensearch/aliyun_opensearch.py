@@ -23,7 +23,7 @@ class AliyunOpenSearch(VectorDB):
         dim: int,
         db_config: dict,
         db_case_config: AliyunOpenSearchIndexConfig,
-        collection_name: str = "VectorDBBenchCollection-2",
+        collection_name: str = "VectorDBBenchCollection-10shards",
         drop_old: bool = False,
         **kwargs,
     ):
@@ -68,7 +68,7 @@ class AliyunOpenSearch(VectorDB):
         create_table_request = models.CreateTableRequest()
         create_table_request.name = self.collection_name
         create_table_request.primary_key = self._primary_field
-        create_table_request.partition_count = 1
+        create_table_request.partition_count = 10
         create_table_request.field_schema = {
             self._primary_field: "INT64",
             self._vector_field: "MULTI_FLOAT",
@@ -100,20 +100,15 @@ class AliyunOpenSearch(VectorDB):
             ],
         )
         advance_params.build_index_params = "{" + params + "}"
-        str_search_list_size=f'"proxima.diskann.searcher.list_size":{self.case_config.search_list_size}'
-        str_io_limit=f'"proxima.diskann.searcher.io_limit":{self.case_config.io_limit}'
-        str_beam=f'"proxima.diskann.searcher.beam_search_width":{self.case_config.beam}'
-        search_params=",".join(
-                [
-                    str_search_list_size,
-                    str_io_limit,
-                    str_beam,
-                ],
-        )
-        advance_params.search_index_params="{" + search_params + "}"
 #        advance_params.search_index_params = (
 #            '{"proxima.hnsw.searcher.ef":400,"proxima.hnsw.searcher.dynamic_termination.prob_threshold":0.7}'
 #        )
+#        advance_params.search_index_params = (
+#                '{"proxima.diskann.searcher.list_size":300,"proxima.diskann.searcher.io_limit":300,"proxima.diskann.searcher.beam_search_width":8}'
+#        )
+        advance_params.search_index_params = (
+       "{\"proxima.diskann.searcher.list_size\":100,\"proxima.diskann.searcher.io_limit\":100,\"proxima.diskann.searcher.beam_search_width\":8}"
+        )
         vector_index.advance_params = advance_params
         create_table_request.vector_index = [vector_index]
 
@@ -185,7 +180,7 @@ class AliyunOpenSearch(VectorDB):
 
         modify_table_request = models.ModifyTableRequest()
         modify_table_request.name=self.collection_name
-        modify_table_request.partition_count = 1
+        modify_table_request.partition_count = 10
         modify_table_request.primary_key = self._primary_field
         modify_table_request.field_schema = {
             self._primary_field: "INT64",
@@ -231,18 +226,12 @@ class AliyunOpenSearch(VectorDB):
                 str_thread_count,
             ],
         )
+       
         advance_params.build_index_params = "{" + params + "}"
-        str_search_list_size=f'"proxima.diskann.searcher.list_size":{self.case_config.search_list_size}'
-        str_io_limit=f'"proxima.diskann.searcher.io_limit":{self.case_config.io_limit}'
-        str_beam=f'"proxima.diskann.searcher.beam_search_width":{self.case_config.beam}'
-        search_params=",".join(
-                [   
-                    str_search_list_size,
-                    str_io_limit,
-                    str_beam,
-                ],
+        advance_params.search_index_params = (
+                '{"proxima.diskann.searcher.list_size":300,"proxima.diskann.searcher.io_limit":300,"proxima.diskann.searcher.beam_search_width":8}'
         )
-        advance_params.search_index_params="{" + search_params + "}"
+
         vector_index.advance_params = advance_params
 
         modify_table_request.vector_index = [vector_index]
@@ -323,39 +312,118 @@ class AliyunOpenSearch(VectorDB):
 #            return (insert_count, e)
 #        return (insert_count, None)
 
+#    def insert_embeddings(
+#        self,
+#        embeddings: list[list[float]],
+#        metadata: list[int],
+#        max_retries: int = 3,  # 最大重试次数
+#        retry_delay: int = 2,  # 重试间隔时间（秒）
+#        **kwargs,
+#    ) -> tuple[int, Exception]:
+#        """Insert the embeddings to the opensearch with timeout retry."""
+#        assert self.client is not None, "should self.init() first"
+#        assert len(embeddings) == len(metadata)
+#        insert_count = 0
+#    
+#        for batch_start_offset in range(0, len(embeddings), self.batch_size):
+#            batch_end_offset = min(batch_start_offset + self.batch_size, len(embeddings))
+#            for attempt in range(max_retries):
+#                try:
+#                    with ThreadPoolExecutor() as executor:
+#                        future = executor.submit(
+#                            self._insert_batch,
+#                            embeddings[batch_start_offset:batch_end_offset],
+#                            metadata[batch_start_offset:batch_end_offset]
+#                        )
+#                        result = future.result(timeout=self.timeout)
+#                    insert_count += result
+#                    break  
+#                except Exception as e:
+#                    log.warning(f"Batch failed (attempt {attempt + 1}/{max_retries}): {e}")
+#                    if attempt == max_retries - 1:  # 最后一次重试失败
+#                        return (insert_count, e)
+#                    time.sleep(retry_delay)  # 重试前等待
+#    
+#        return (insert_count, None)
+#
+#    def _insert_batch(self, batch_embeddings: list[list[float]], batch_metadata: list[int]) -> int:
+#        documents = []
+#        for i in range(len(batch_embeddings)):
+#            document_fields = {
+#                self._primary_field: batch_metadata[i],
+#                self._vector_field: batch_embeddings[i],
+#                self._scalar_field: batch_metadata[i],
+#                "ops_build_channel": "inc",
+#            }
+#            documents.append({"fields": document_fields, "cmd": "add"})
+#    
+#        push_doc_req = models.PushDocumentsRequest({}, documents)
+#        self.client.push_documents(self.collection_name, self._primary_field, push_doc_req)
+#        return len(batch_embeddings)  # 返回成功插入的文档数量
     def insert_embeddings(
         self,
         embeddings: list[list[float]],
         metadata: list[int],
-        max_retries: int = 3,  # 最大重试次数
-        retry_delay: int = 2,  # 重试间隔时间（秒）
+        max_retries: int = 3,
+        max_concurrent_batches: int=10,
+        retry_delay: int = 2,
         **kwargs,
     ) -> tuple[int, Exception]:
-        """Insert the embeddings to the opensearch with timeout retry."""
         assert self.client is not None, "should self.init() first"
         assert len(embeddings) == len(metadata)
-        insert_count = 0
+        
+        futures = []
+        with ThreadPoolExecutor(max_workers=max_concurrent_batches) as executor:
+            for batch_start_offset in range(0, len(embeddings), self.batch_size):
+                batch_end_offset = min(batch_start_offset + self.batch_size, len(embeddings))
+                batch_embeddings = embeddings[batch_start_offset:batch_end_offset]
+                batch_metadata = metadata[batch_start_offset:batch_end_offset]
+                
+                futures.append(
+                    executor.submit(
+                        self._insert_batch_with_retry,
+                        batch_embeddings,
+                        batch_metadata,
+                        max_retries,
+                        retry_delay
+                    )
+                )
     
-        for batch_start_offset in range(0, len(embeddings), self.batch_size):
-            batch_end_offset = min(batch_start_offset + self.batch_size, len(embeddings))
-            for attempt in range(max_retries):
-                try:
-                    with ThreadPoolExecutor() as executor:
-                        future = executor.submit(
-                            self._insert_batch,
-                            embeddings[batch_start_offset:batch_end_offset],
-                            metadata[batch_start_offset:batch_end_offset]
-                        )
-                        result = future.result(timeout=self.timeout)
-                    insert_count += result
-                    break  
-                except Exception as e:
-                    log.warning(f"Batch failed (attempt {attempt + 1}/{max_retries}): {e}")
-                    if attempt == max_retries - 1:  # 最后一次重试失败
-                        return (insert_count, e)
-                    time.sleep(retry_delay)  # 重试前等待
+        total_insert = 0
+        first_exception = None
+        for future in as_completed(futures):
+            count, exc = future.result()
+            if exc:
+                if first_exception is None:
+                    first_exception = exc
+            else:
+                total_insert += count
     
-        return (insert_count, None)
+        return (total_insert, first_exception)
+
+    def _insert_batch_with_retry(
+        self,
+        batch_embeddings: list[list[float]],
+        batch_metadata: list[int],
+        max_retries: int,
+        retry_delay: int
+    ) -> tuple[int, Exception]:
+        for attempt in range(max_retries):
+            try:
+                with ThreadPoolExecutor() as executor:
+                    future = executor.submit(
+                        self._insert_batch,
+                        batch_embeddings,
+                        batch_metadata
+                    )
+                    count = future.result(timeout=self.timeout)
+                return (count, None)
+            except Exception as e:
+                log.warning(f"Batch failed (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt == max_retries - 1:
+                    return (0, e)
+                time.sleep(retry_delay)
+        return (0, None)
 
     def _insert_batch(self, batch_embeddings: list[list[float]], batch_metadata: list[int]) -> int:
         documents = []
@@ -370,7 +438,7 @@ class AliyunOpenSearch(VectorDB):
     
         push_doc_req = models.PushDocumentsRequest({}, documents)
         self.client.push_documents(self.collection_name, self._primary_field, push_doc_req)
-        return len(batch_embeddings)  # 返回成功插入的文档数量
+        return len(batch_embeddings)
 
 
     def search_embedding(
@@ -381,15 +449,8 @@ class AliyunOpenSearch(VectorDB):
     ) -> list[int]:
         assert self.client is not None, "should self.init() first"
 #        search_params = '{"proxima.hnsw.searcher.ef":' + str(self.case_config.ef_search) + "}"
-        str_search_list_size=f'"proxima.diskann.searcher.list_size":{self.case_config.search_list_size}'
-        str_io_limit=f'"proxima.diskann.searcher.io_limit":{self.case_config.io_limit}'
-        str_beam=f'"proxima.diskann.searcher.beam_search_width":{self.case_config.beam}'
-        search_params=",".join(
-                [
-                    str_search_list_size,
-                    str_io_limit,
-                    str_beam,
-                ],
+        search_params = (
+       "{\"proxima.diskann.searcher.list_size\":100,\"proxima.diskann.searcher.io_limit\":100,\"proxima.diskann.searcher.beam_search_width\":8}"
         )
 
         os_filter = f"{self._scalar_field} {filters.get('metadata')}" if filters else ""

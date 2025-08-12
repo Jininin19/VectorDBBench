@@ -32,8 +32,8 @@ class AliyunOpenSearchIndexConfig(BaseModel, DBCaseConfig):
     max_degree: int = 64
     build_list_size: int = 100
     thread_count: int = 16
-    search_list_size: int = 300
-    io_limit: int = 300
+    search_list_size: int = 100
+    io_limit: int = 100
     beam: int = 8
     def distance_type(self) -> str:
         if self.metric_type == MetricType.L2:
