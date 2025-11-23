@@ -1,3 +1,98 @@
+Metadata-Version: 2.4
+Name: vectordb-bench
+Version: 1.0.5.dev2+g54c94e2
+Summary: VectorDBBench is not just an offering of benchmark results for mainstream vector databases and cloud services, it's your go-to tool for the ultimate performance and cost-effectiveness comparison. Designed with ease-of-use in mind, VectorDBBench is devised to help users, even non-professionals, reproduce results or test new systems, making the hunt for the optimal choice amongst a plethora of cloud services and open-source vector databases a breeze.
+Author-email: XuanYang-cn <xuan.yang@zilliz.com>
+Project-URL: repository, https://github.com/zilliztech/VectorDBBench
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: click
+Requires-Dist: pytz
+Requires-Dist: streamlit-autorefresh
+Requires-Dist: streamlit!=1.34.0,<1.44
+Requires-Dist: streamlit_extras
+Requires-Dist: tqdm
+Requires-Dist: s3fs
+Requires-Dist: oss2
+Requires-Dist: psutil
+Requires-Dist: polars
+Requires-Dist: plotly
+Requires-Dist: environs
+Requires-Dist: pydantic<v2
+Requires-Dist: scikit-learn
+Requires-Dist: pymilvus
+Provides-Extra: test
+Requires-Dist: black; extra == "test"
+Requires-Dist: ruff; extra == "test"
+Requires-Dist: pytest; extra == "test"
+Provides-Extra: all
+Requires-Dist: grpcio==1.53.0; extra == "all"
+Requires-Dist: grpcio-tools==1.53.0; extra == "all"
+Requires-Dist: qdrant-client; extra == "all"
+Requires-Dist: pinecone-client; extra == "all"
+Requires-Dist: weaviate-client; extra == "all"
+Requires-Dist: elasticsearch; extra == "all"
+Requires-Dist: sqlalchemy; extra == "all"
+Requires-Dist: redis; extra == "all"
+Requires-Dist: chromadb; extra == "all"
+Requires-Dist: pgvector; extra == "all"
+Requires-Dist: psycopg; extra == "all"
+Requires-Dist: psycopg-binary; extra == "all"
+Requires-Dist: pgvecto_rs[psycopg3]>=0.2.2; extra == "all"
+Requires-Dist: opensearch-dsl; extra == "all"
+Requires-Dist: opensearch-py; extra == "all"
+Requires-Dist: memorydb; extra == "all"
+Requires-Dist: alibabacloud_ha3engine_vector; extra == "all"
+Requires-Dist: mariadb; extra == "all"
+Requires-Dist: PyMySQL; extra == "all"
+Requires-Dist: clickhouse-connect; extra == "all"
+Requires-Dist: pyvespa; extra == "all"
+Requires-Dist: lancedb; extra == "all"
+Requires-Dist: mysql-connector-python; extra == "all"
+Provides-Extra: qdrant
+Requires-Dist: qdrant-client; extra == "qdrant"
+Provides-Extra: pinecone
+Requires-Dist: pinecone-client; extra == "pinecone"
+Provides-Extra: weaviate
+Requires-Dist: weaviate-client; extra == "weaviate"
+Provides-Extra: elastic
+Requires-Dist: elasticsearch; extra == "elastic"
+Provides-Extra: pgvector
+Requires-Dist: psycopg; extra == "pgvector"
+Requires-Dist: psycopg-binary; extra == "pgvector"
+Requires-Dist: pgvector; extra == "pgvector"
+Provides-Extra: pgvecto-rs
+Requires-Dist: pgvecto_rs[psycopg3]>=0.2.2; extra == "pgvecto-rs"
+Provides-Extra: redis
+Requires-Dist: redis; extra == "redis"
+Provides-Extra: memorydb
+Requires-Dist: memorydb; extra == "memorydb"
+Provides-Extra: chromadb
+Requires-Dist: chromadb; extra == "chromadb"
+Provides-Extra: opensearch
+Requires-Dist: opensearch-py; extra == "opensearch"
+Provides-Extra: aliyun-opensearch
+Requires-Dist: alibabacloud_ha3engine_vector; extra == "aliyun-opensearch"
+Provides-Extra: mongodb
+Requires-Dist: pymongo; extra == "mongodb"
+Provides-Extra: mariadb
+Requires-Dist: mariadb; extra == "mariadb"
+Provides-Extra: tidb
+Requires-Dist: PyMySQL; extra == "tidb"
+Provides-Extra: clickhouse
+Requires-Dist: clickhouse-connect; extra == "clickhouse"
+Provides-Extra: vespa
+Requires-Dist: pyvespa; extra == "vespa"
+Provides-Extra: lancedb
+Requires-Dist: lancedb; extra == "lancedb"
+Provides-Extra: oceanbase
+Requires-Dist: mysql-connector-python; extra == "oceanbase"
+Dynamic: license-file
+
 # VectorDBBench(VDBBench): A Benchmark Tool for VectorDB
 
 [![version](https://img.shields.io/pypi/v/vectordb-bench.svg?color=blue)](https://pypi.org/project/vectordb-bench/)

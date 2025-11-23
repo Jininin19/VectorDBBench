@@ -1,0 +1,12 @@
+2025-07-16 12:50:49,577 | [92mINFO[0m: [92mall configs: [('ALIYUN_OSS_URL', 'assets.zilliz.com.cn/benchmark/'), ('AWS_S3_URL', 'assets.zilliz.com/benchmark/'), ('CONCURRENCY_DURATION', 30), ('CONFIG_LOCAL_DIR', PosixPath('/Users/chanyu/code/VectorDBBench/vectordb_bench/config-files')), ('CUSTOM_CONFIG_DIR', PosixPath('/Users/chanyu/code/VectorDBBench/vectordb_bench/custom/custom_case.json')), ('DATASET_LOCAL_DIR', '/tmp/vectordb_bench/dataset'), ('DEFAULT_DATASET_URL', 'assets.zilliz.com/benchmark/'), ('DROP_OLD', True), ('K_DEFAULT', 100), ('LOAD_MAX_TRY_COUNT', 10), ('LOG_LEVEL', 'INFO'), ('MAX_INSERT_RETRY', 5), ('MAX_SEARCH_RETRY', 5), ('NUM_CONCURRENCY', [1, 5, 10, 20, 30, 40, 60, 80]), ('NUM_PER_BATCH', 100), ('RESULTS_LOCAL_DIR', PosixPath('/Users/chanyu/code/VectorDBBench/vectordb_bench/results')), ('TIME_PER_BATCH', 1), ('USE_SHUFFLED_DATA', True)][0m (__main__.py:12) (8242)
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://30.221.113.98:8501
+
+  For better performance, install the Watchdog module:
+
+  $ xcode-select --install
+  $ pip install watchdog
+            
